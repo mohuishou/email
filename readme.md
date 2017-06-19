@@ -61,5 +61,42 @@ key = 1234567890123456
 |c|配置文件地址|
 |p|端口号|
 
+## API
+
+- 发送
+```
+uri: /
+method: post
+header: {
+  token: "rdytfugihnljvcdhrjtugkyhk32fdr7tifuyvh"
+}
+params: {
+  title: "Hello World!"
+  address: "1@lailin.xyz"
+  content: "<h1>Hello World</h1>"
+}
+```
+|参数|说明|备注|
+|:----:|:----:|:----:|
+|token|签发的应用token|必须|
+|title|邮件主题|必须|
+|address|邮件地址|必须|
+|content|邮件内容|必须|
+
+- 返回
+```json
+{
+    "status": 0,
+    "msg": "地址 必须！",
+    "data": ""
+}
+```
+|参数|说明|备注|
+|:----:|:----:|:----:|
+|status|状态|0:失败,1:成功|
+|msg|提示信息||
+|data|数据信息|暂未使用|
+
+
 ## Author
 [mohuishou](github.com/mohuishou)

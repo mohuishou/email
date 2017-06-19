@@ -32,6 +32,7 @@ func NewWorker(id int, workerPool chan chan Job) Worker {
 	}
 }
 
+//Worker worker
 type Worker struct {
 	id         int
 	jobQueue   chan Job
@@ -82,6 +83,7 @@ func NewDispatcher(jobQueue chan Job, maxWorkers int) *Dispatcher {
 	}
 }
 
+//Dispatcher 分发
 type Dispatcher struct {
 	workerPool chan chan Job
 	maxWorkers int
@@ -121,31 +123,31 @@ func requestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job) {
 
 	token := r.Header.Get("token")
 	if token == "" {
-		http.Error(w, "应用暂未授权", http.StatusBadRequest)
+		errorRetrun(w, "应用暂未授权", "")
 		return
 	}
 	app, err := decryptToken(token)
 	if err != nil {
-		http.Error(w, "应用授权信息错误！", http.StatusBadRequest)
+		errorRetrun(w, "应用授权信息错误！", "")
 		return
 	}
 
 	// Set name and validate value.
 	title := r.FormValue("title")
 	if title == "" {
-		http.Error(w, "title 必须！", http.StatusBadRequest)
+		errorRetrun(w, "title 必须！", "")
 		return
 	}
 
 	to := r.FormValue("address")
 	if to == "" {
-		http.Error(w, "地址 必须！", http.StatusBadRequest)
+		errorRetrun(w, "地址 必须！", "")
 		return
 	}
 
 	content := r.FormValue("content")
 	if content == "" {
-		http.Error(w, "content 必须！", http.StatusBadRequest)
+		errorRetrun(w, "content必须！", "")
 		return
 	}
 
@@ -155,7 +157,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job) {
 	jobQueue <- job
 
 	// Render success.
-	w.WriteHeader(http.StatusCreated)
+	successReturn(w, "已添加到后台队列！", "")
 }
 
 //Config 配置项目
