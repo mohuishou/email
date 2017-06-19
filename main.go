@@ -16,103 +16,6 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-// Job holds the attributes needed to perform unit of work.
-type Job struct {
-	app   string
-	email *gomail.Message
-}
-
-// NewWorker creates takes a numeric id and a channel w/ worker pool.
-func NewWorker(id int, workerPool chan chan Job) Worker {
-	return Worker{
-		id:         id,
-		jobQueue:   make(chan Job),
-		workerPool: workerPool,
-		quitChan:   make(chan bool),
-	}
-}
-
-//Worker worker
-type Worker struct {
-	id         int
-	jobQueue   chan Job
-	workerPool chan chan Job
-	quitChan   chan bool
-}
-
-func (w Worker) start() {
-	go func() {
-		for {
-			// Add my jobQueue to the worker pool.
-			w.workerPool <- w.jobQueue
-
-			select {
-			case job := <-w.jobQueue:
-				// Dispatcher has added a job to my jobQueue.
-				fmt.Printf("worker%d: started %s, blocking for %f seconds\n", w.id, job.app, config.delay.Seconds())
-				time.Sleep(config.delay)
-				//开始发送
-				if err := sendMailer.DialAndSend(job.email); err != nil {
-					log.Printf("[Mailer][%s]Error:%s", job.app, err.Error())
-				} else {
-					log.Printf("[Mailer][%s]Success: 发送成功", job.app)
-				}
-			case <-w.quitChan:
-				// We have been asked to stop.
-				fmt.Printf("worker%d stopping\n", w.id)
-				return
-			}
-		}
-	}()
-}
-
-func (w Worker) stop() {
-	go func() {
-		w.quitChan <- true
-	}()
-}
-
-// NewDispatcher creates, and returns a new Dispatcher object.
-func NewDispatcher(jobQueue chan Job, maxWorkers int) *Dispatcher {
-	workerPool := make(chan chan Job, maxWorkers)
-
-	return &Dispatcher{
-		jobQueue:   jobQueue,
-		maxWorkers: maxWorkers,
-		workerPool: workerPool,
-	}
-}
-
-//Dispatcher 分发
-type Dispatcher struct {
-	workerPool chan chan Job
-	maxWorkers int
-	jobQueue   chan Job
-}
-
-func (d *Dispatcher) run() {
-	for i := 0; i < d.maxWorkers; i++ {
-		worker := NewWorker(i+1, d.workerPool)
-		worker.start()
-	}
-
-	go d.dispatch()
-}
-
-func (d *Dispatcher) dispatch() {
-	for {
-		select {
-		case job := <-d.jobQueue:
-			go func() {
-				fmt.Printf("fetching workerJobQueue for: %s\n", job.app)
-				workerJobQueue := <-d.workerPool
-				fmt.Printf("adding %s to workerJobQueue\n", job.app)
-				workerJobQueue <- job
-			}()
-		}
-	}
-}
-
 func requestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
@@ -151,12 +54,12 @@ func requestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job) {
 		return
 	}
 
-	// Create Job and push the work onto the jobQueue.
+	// 入队
 	m := mail(to, title, content)
 	job := Job{email: m, app: app.Name}
 	jobQueue <- job
 
-	// Render success.
+	// 添加成功
 	successReturn(w, "已添加到后台队列！", "")
 }
 
@@ -172,25 +75,33 @@ type Config struct {
 	key          string
 }
 
+//全局配置项
 var config = Config{}
 
+//配置项目初始化
 func initConfig(configFile string) {
 	c, err := goconfig.LoadConfigFile(configFile)
 	if err != nil {
 		log.Fatalln("配置文件加载错误！")
 	}
+
+	//系统配置
 	config.workerNumber = c.MustInt("system", "worker_number", 5)
 	config.maxQueueSize = c.MustInt("system", "max_queue_size", 100)
 	delay, _ := c.GetValue("system", "delay")
 	config.delay, _ = time.ParseDuration(delay)
+
+	//email配置
 	config.address, _ = c.GetValue("email", "address")
 	config.server, _ = c.GetValue("email", "server")
 	config.port = c.MustInt("email", "port", 465)
 	config.password, _ = c.GetValue("email", "password")
 
+	//密钥配置
 	config.key, _ = c.GetValue("token", "key")
 }
 
+//发送邮件
 var sendMailer *gomail.Dialer
 
 func main() {
@@ -200,8 +111,12 @@ func main() {
 		configFile = flag.String("c", "config.ini", "the config file")
 	)
 	flag.Parse()
-	initConfig(*configFile)
 
+	//加载配置文件
+	initConfig(*configFile)
+	log.Println("配置文件加载成功！")
+
+	//新建应用
 	if len(os.Args) > 1 {
 		if os.Args[1] == "new" {
 			var (
@@ -217,13 +132,13 @@ func main() {
 		}
 	}
 
-	//加载配置文件
+	//发送邮件配置
 	sendMailer = gomail.NewDialer(config.server, config.port, config.address, config.password)
 
-	// Create the job queue.
+	// 创建应用队列
 	jobQueue := make(chan Job, config.maxQueueSize)
 
-	// Start the dispatcher.
+	// 队列分发
 	dispatcher := NewDispatcher(jobQueue, config.workerNumber)
 	dispatcher.run()
 
@@ -231,5 +146,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		requestHandler(w, r, jobQueue)
 	})
+	log.Println("应用启动中，监听端口：", *port)
 	log.Fatal(http.ListenAndServe(":"+*port, nil))
+
 }
