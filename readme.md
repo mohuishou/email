@@ -5,7 +5,7 @@
 
 ## 安装
 - 二进制包
-
+[bin](./bin)
 - 源码
 ```
 go get github.com/mohuishou/email

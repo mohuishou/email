@@ -2,6 +2,4 @@ package: github.com/mohuishou/email
 import:
 - package: gopkg.in/gomail.v2
   version: ^2.0.0
-- package: github.com/benmanns/goworker
-  version: ~0.1.2
 - package: github.com/Unknwon/goconfig
