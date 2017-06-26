@@ -40,8 +40,6 @@ func (w Worker) start() {
 
 			select {
 			case job := <-w.jobQueue:
-				// Dispatcher has added a job to my jobQueue.
-				fmt.Printf("worker%d: started %s, blocking for %f seconds\n", w.id, job.app, config.delay.Seconds())
 				time.Sleep(config.delay)
 				//开始发送
 				if err := sendMailer.DialAndSend(job.email); err != nil {
@@ -96,9 +94,7 @@ func (d *Dispatcher) dispatch() {
 		select {
 		case job := <-d.jobQueue:
 			go func() {
-				fmt.Printf("fetching workerJobQueue for: %s\n", job.app)
 				workerJobQueue := <-d.workerPool
-				fmt.Printf("adding %s to workerJobQueue\n", job.app)
 				workerJobQueue <- job
 			}()
 		}
