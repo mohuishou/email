@@ -8,16 +8,14 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
-	"time"
 
 	"os"
 
-	"github.com/gpmgo/gopm/modules/goconfig"
 	"github.com/mohuishou/email/utils"
 	"gopkg.in/gomail.v2"
 )
 
-func requestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job) {
+func requestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job, aes utils.AES) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -30,7 +28,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job) {
 		errorRetrun(w, "应用暂未授权", "")
 		return
 	}
-	app, err := decryptToken(token)
+	app, err := utils.DecryptToken(token, aes)
 	if err != nil {
 		errorRetrun(w, "应用授权信息错误！", "")
 		return
@@ -64,58 +62,17 @@ func requestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job) {
 	successReturn(w, "已添加到后台队列！", "")
 }
 
-//Config 配置项目
-type Config struct {
-	workerNumber int
-	delay        time.Duration
-	maxQueueSize int
-	address      string
-	server       string
-	port         int
-	password     string
-	key          string
-}
-
-//全局配置项
-var config = Config{}
-
-//配置项目初始化
-func initConfig(configFile string) {
-	c, err := goconfig.LoadConfigFile(configFile)
-	if err != nil {
-		log.Fatalln("配置文件加载错误！")
-	}
-
-	//系统配置
-	config.workerNumber = c.MustInt("system", "worker_number", 5)
-	config.maxQueueSize = c.MustInt("system", "max_queue_size", 100)
-	delay, _ := c.GetValue("system", "delay")
-	config.delay, _ = time.ParseDuration(delay)
-
-	//email配置
-	config.address, _ = c.GetValue("email", "address")
-	config.server, _ = c.GetValue("email", "server")
-	config.port = c.MustInt("email", "port", 465)
-	config.password, _ = c.GetValue("email", "password")
-
-	//密钥配置
-	config.key, _ = c.GetValue("token", "key")
-}
-
-//发送邮件
-var sendMailer *gomail.Dialer
-
 func main() {
 	//命令输入
 	var (
 		port       = flag.String("p", "8080", "The server port")
-		configFile = flag.String("c", "config.ini", "the config file")
+		configFile = flag.String("c", "config.yaml", "the config file")
 	)
 	flag.Parse()
 
-	//加载配置文件
-	initConfig(*configFile)
-	log.Println("配置文件加载成功！")
+	config := utils.GetConfig(*configFile)
+
+	aes := utils.NewAES(config.System.Key)
 
 	//新建应用
 	if len(os.Args) > 1 {
@@ -126,26 +83,27 @@ func main() {
 				author = flag.String("author", "mohuishou", "拥有者")
 			)
 			flag.Parse()
-			token := utils.NewAppToken(*name, *author, *ip)
+			token := utils.NewAppToken(*name, *author, *ip, aes)
 			fmt.Printf("the [%s] token:%s \n", *name, token)
-			fmt.Println(utils.DecryptToken(token))
 			return
 		}
 	}
 
-	//发送邮件配置
-	sendMailer = gomail.NewDialer(config.server, config.port, config.address, config.password)
-
 	// 创建应用队列
-	jobQueue := make(chan Job, config.maxQueueSize)
+	jobQueue := make(chan Job, config.System.MaxQueueSize)
 
-	// 队列分发
-	dispatcher := NewDispatcher(jobQueue, config.workerNumber)
-	dispatcher.run()
+	for _, e := range config.Emails {
+		//发送邮件配置
+		sendMailer := gomail.NewDialer(e.Server, e.Port, e.Address, e.Password)
+
+		// 队列分发
+		dispatcher := NewDispatcher(jobQueue, config.System.WorkerNumber, sendMailer)
+		dispatcher.run()
+	}
 
 	// Start the HTTP handler.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		requestHandler(w, r, jobQueue)
+		requestHandler(w, r, jobQueue, aes)
 	})
 	log.Println("应用启动中，监听端口：", *port)
 	log.Fatal(http.ListenAndServe(":"+*port, nil))
