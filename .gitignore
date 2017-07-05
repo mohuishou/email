@@ -1,3 +1,4 @@
 config.ini
+config.yaml
 vendor/*
 bin/*

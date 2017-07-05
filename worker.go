@@ -15,12 +15,13 @@ type Job struct {
 }
 
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
-func NewWorker(id int, workerPool chan chan Job) Worker {
+func NewWorker(id int, workerPool chan chan Job, sendMailer *gomail.Dialer) Worker {
 	return Worker{
 		id:         id,
 		jobQueue:   make(chan Job),
 		workerPool: workerPool,
 		quitChan:   make(chan bool),
+		sendMailer: sendMailer,
 	}
 }
 
@@ -30,6 +31,7 @@ type Worker struct {
 	jobQueue   chan Job
 	workerPool chan chan Job
 	quitChan   chan bool
+	sendMailer *gomail.Dialer
 }
 
 func (w Worker) start() {
@@ -42,7 +44,7 @@ func (w Worker) start() {
 			case job := <-w.jobQueue:
 				time.Sleep(config.delay)
 				//开始发送
-				if err := sendMailer.DialAndSend(job.email); err != nil {
+				if err := w.sendMailer.DialAndSend(job.email); err != nil {
 					log.Printf("[Mailer][%s]Error:%s", job.app, err.Error())
 				} else {
 					log.Printf("[Mailer][%s]Success: 发送成功", job.app)
@@ -78,11 +80,12 @@ type Dispatcher struct {
 	workerPool chan chan Job
 	maxWorkers int
 	jobQueue   chan Job
+	sendMailer *gomail.Dialer
 }
 
 func (d *Dispatcher) run() {
 	for i := 0; i < d.maxWorkers; i++ {
-		worker := NewWorker(i+1, d.workerPool)
+		worker := NewWorker(i+1, d.workerPool, d.sendMailer)
 		worker.start()
 	}
 

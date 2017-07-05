@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"crypto/aes"
@@ -8,11 +8,19 @@ import (
 	"io"
 )
 
+//AES 加密
+type AES struct {
+	key []byte
+}
+
+func NewAES(key string) AES {
+	return AES{[]byte(key)}
+}
+
 //加密
-func encrypt(str string) string {
-	key := []byte(config.key)
+func (a AES) Encrypt(str string) string {
 	plaintext := []byte(str)
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(a.key)
 	if err != nil {
 		panic(err)
 	}
@@ -28,13 +36,12 @@ func encrypt(str string) string {
 }
 
 //解密
-func decrypt(cipherStr string) ([]byte, error) {
-	key := []byte(config.key)
+func (a AES) Decrypt(cipherStr string) ([]byte, error) {
 	ciphertext, err := base64.StdEncoding.DecodeString(cipherStr)
 	if err != nil {
 		return nil, err
 	}
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(a.key)
 	if err != nil {
 		return nil, err
 	}

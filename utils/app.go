@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"encoding/json"
@@ -13,22 +13,22 @@ type APP struct {
 	IP     string `json:"ip"`     //应用ip
 }
 
-//new app token 新建应用秘钥
-func newAppToken(name, author, ip string) (token string) {
+//NewAppToken 新建应用秘钥
+func NewAppToken(name, author, ip string, aes AES) (token string) {
 	app := APP{Name: name, Time: time.Now().Unix(), Author: author, IP: ip}
-	a, err := json.Marshal(app)
+	appkey, err := json.Marshal(app)
 	if err != nil {
 		panic(err)
 	}
-	return encrypt(string(a))
+	return aes.Encrypt(string(appkey))
 }
 
-//token解密，获取应用信息
-func decryptToken(token string) (app APP, err error) {
-	a, err := decrypt(token)
+//DecryptToken token解密，获取应用信息
+func DecryptToken(token string, aes AES) (app APP, err error) {
+	appkey, err := aes.Decrypt(token)
 	if err != nil {
 		return app, err
 	}
-	err = json.Unmarshal(a, &app)
+	err = json.Unmarshal(appkey, &app)
 	return app, err
 }

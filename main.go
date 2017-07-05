@@ -13,6 +13,7 @@ import (
 	"os"
 
 	"github.com/gpmgo/gopm/modules/goconfig"
+	"github.com/mohuishou/email/utils"
 	"gopkg.in/gomail.v2"
 )
 
@@ -125,9 +126,9 @@ func main() {
 				author = flag.String("author", "mohuishou", "拥有者")
 			)
 			flag.Parse()
-			token := newAppToken(*name, *author, *ip)
+			token := utils.NewAppToken(*name, *author, *ip)
 			fmt.Printf("the [%s] token:%s \n", *name, token)
-			fmt.Println(decryptToken(token))
+			fmt.Println(utils.DecryptToken(token))
 			return
 		}
 	}
