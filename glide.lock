@@ -1,5 +1,5 @@
-hash: 55adb367dbf6ae3866d72acb7804ed44658c9ef8655110bd10fb394c23731470
-updated: 2017-06-19T16:07:11.49244551+08:00
+hash: 8590eb51a00b491fc568478f8dc51b89d15e6051a82faf0831cc16f574474312
+updated: 2017-07-06T00:07:27.622747878+08:00
 imports:
 - name: github.com/gpmgo/gopm
   version: 7072332d09d69570756850cb3928e7ae34724789
@@ -11,4 +11,6 @@ imports:
   version: 2caba252f4dc53eaf6b553000885530023f54623
 - name: gopkg.in/gomail.v2
   version: 81ebce5c23dfd25c6c67194b37d3dd3f338c98b1
+- name: gopkg.in/yaml.v2
+  version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
 testImports: []
