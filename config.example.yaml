@@ -4,7 +4,7 @@ system:
   worker_number: 2 #单个账号的并发数
   delay: 2s #每个协程队列的延时
   max_queue_size: 100 #每个协程队列的最大值
-  key: 1234567890123456 #AES秘钥key
+  key: 1234567890qwerft #AES秘钥key
 
 # 邮箱配置
 emails:

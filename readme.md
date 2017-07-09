@@ -12,32 +12,27 @@ go get github.com/mohuishou/email
 
 ## 配置文件
 
-将`config.example.ini`重命名为`config.ini`
+将`config.example.yaml`重命名为`config.yaml`
 
-```ini
-;系统配置
-[system]
-;并发数
-worker_number = 5
-;延时时间
-delay = 2s 
-max_queue_size = 100
+```yaml
+# 配置文件
+# 系统配置
+system:
+  worker_number: 2 #单个账号的并发数
+  delay: 2s #每个协程队列的延时
+  max_queue_size: 100 #每个协程队列的最大值
+  key: 1234567890qwerft #AES秘钥key 长度为16/24/32位
 
-;邮箱配置
-[email]
-;邮箱地址
-address = noreplay@example.com
-;smtp服务器地址
-server = smtp.example.com
-;端口号
-port = 465
-;密码
-password = password
-
-;token秘钥，用于生成应用许可
-;长度为16/24/32位
-[token]
-key = 1234567890123456
+# 邮箱配置
+emails:
+- address:  example@example.com #邮箱地址
+  server: smtp.exmail.example.com #smtp服务器地址
+  port: 465 #端口号
+  password: example #密码
+- address:  example@example.com
+  server: smtp.exmail.example.com
+  port: 465
+  password: example
 ```
 
 ## 运行
