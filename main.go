@@ -2,14 +2,14 @@
 package main
 
 import (
-	_ "expvar"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
 
 	"os"
+
+	"time"
 
 	"github.com/mohuishou/email/utils"
 	"gopkg.in/gomail.v2"
@@ -54,8 +54,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job, a
 	}
 
 	// 入队
-	m := mail(to, title, content)
-	job := Job{email: m, app: app.Name}
+	job := Job{email: Email{address: to, title: title, content: content}, app: app.Name}
 	jobQueue <- job
 
 	// 添加成功
@@ -92,12 +91,16 @@ func main() {
 	// 创建应用队列
 	jobQueue := make(chan Job, config.System.MaxQueueSize)
 
+	delay, err := time.ParseDuration(config.System.Delay)
+	if err != nil {
+		log.Fatal("[配置文件错误]延时设置错误！")
+	}
 	for _, e := range config.Emails {
 		//发送邮件配置
 		sendMailer := gomail.NewDialer(e.Server, e.Port, e.Address, e.Password)
 
 		// 队列分发
-		dispatcher := NewDispatcher(jobQueue, config.System.WorkerNumber, sendMailer)
+		dispatcher := NewDispatcher(jobQueue, config.System.WorkerNumber, sendMailer, delay)
 		dispatcher.run()
 	}
 
