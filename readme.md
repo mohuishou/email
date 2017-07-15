@@ -48,7 +48,7 @@ emails:
 
 - 运行
 ```bash
-./email -c=config.ini -p=8080
+./email -c=config.yaml -p=8080
 ```
 |参数|说明|
 |:----:|:----:|
